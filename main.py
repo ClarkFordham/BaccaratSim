@@ -69,7 +69,7 @@ def pop_and_count(shoe) :
 #Param: banker_commission - % value of bankers 
 #                                   commission
 ##############################################
-def run_sims(num_sims, banker_commission) :
+def run_sims(num_sims) :
     global count
     global bankroll
 
@@ -77,20 +77,23 @@ def run_sims(num_sims, banker_commission) :
     PLAYER_WINS = 0
     BANKER_WINS = 0
     TIES = 0
+    DRAGON_7 = 0
 
+    bet = 1
     count = 0
     bankroll = 0
     gambler_bet_banker = True
 
     for n in range(0, num_sims) :
-        if len(shoe) < 233 : 
+        if len(shoe) < 20 : 
             shoe = generate_shoe()
             count = 0
 
         #deal two cards each to player and banker
         player = pop_and_count(shoe) + pop_and_count(shoe)
         banker = pop_and_count(shoe) + pop_and_count(shoe)
-        player_hit = 0
+        player_hit = -1
+        banker_hit = -1
 
         if player % 10 < 6 : # if player has less than 6 player hits
             player_hit = pop_and_count(shoe)
@@ -98,21 +101,27 @@ def run_sims(num_sims, banker_commission) :
         elif banker % 10 < 6 : # if player does not hit and banker has less than 6 banker hits
             banker += pop_and_count(shoe)
 
-        if player_hit != 0 and should_banker_hit(player, banker) : # if player hits, banker may or may not hit based on ez bac rules
-            banker += pop_and_count(shoe)
+        if player_hit != -1 and should_banker_hit(player, banker) : # if player hits, banker may or may not hit based on ez bac rules
+            banker_hit = pop_and_count(shoe)
+            banker += banker_hit
+
     
         if player % 10 > banker % 10 :
             PLAYER_WINS += 1
-            bankroll += 1 if not gambler_bet_banker else -1
+            bankroll += bet if not gambler_bet_banker else -bet
         elif banker % 10 > player % 10 :
-            BANKER_WINS += 1
-            bankroll += 1 if gambler_bet_banker else -1
+            if banker_hit != -1 and banker % 10 == 7 :
+                DRAGON_7 += 1
+                bankroll -= bet if not gambler_bet_banker else 0
+            else :
+                BANKER_WINS += 1
+                bankroll += bet if gambler_bet_banker else -bet
         else :
             TIES += 1
 
         gambler_bet_banker = count > 4
 
-    return (PLAYER_WINS, BANKER_WINS, TIES)
+    return (PLAYER_WINS, BANKER_WINS, TIES, DRAGON_7)
 
 def main() :
     global count
@@ -122,15 +131,12 @@ def main() :
         while num_sims <= 0 :
             num_sims = input("please input number of simulations > 0: ")
 
-        banker_commission = int(input("house commission for banker win (%): "))
-        while banker_commission < 0 :
-            banker_commision = input("please input banker commission >= 0 (%): ")
-
-        results = run_sims(num_sims, banker_commission)
+        results = run_sims(num_sims)
 
         print("Banker Wins: ", results[1])
         print("Player Wins: ", results[0])
         print("Ties: ", results[2])
+        print("Dragon 7s: ", results[3])
         print("Count: ", count)
         print("Bankroll with card counting: ", bankroll)
 
